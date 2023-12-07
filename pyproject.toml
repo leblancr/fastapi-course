@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "python-api-course"
+name = "fastapi-course"
 version = "0.1.0"
 description = ""
 authors = ["rich leblanc <rich.leblanc1@proton.me>"]

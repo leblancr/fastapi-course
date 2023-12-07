@@ -23,6 +23,9 @@ class Post(BaseModel):
     rating: Optional[int] = None
 
 
+my_posts = {}
+
+
 @app.get("/")
 async def root():
     return {"message": "Hello World"}
