@@ -34,6 +34,12 @@ def find_post(id):
             return p
 
 
+def find_index_post(id):
+    for i, p in enumerate(my_posts):
+        if p['id'] == id:
+            return i
+
+
 @app.get("/")
 async def root():
     return {"message": "Hello World"}
@@ -49,6 +55,20 @@ async def get_post(id: int):  # string gets converted to int
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                             detail=f"post with id: {id} not found")
     return {"post_detail": post}
+
+
+# Delete one post, pydantic type check converts string id to int.
+@app.delete("/posts/{id}", status_code=status.HTTP_204_NO_CONTENT)  # string id
+async def delete_post(id: int):  # string gets converted to int
+    logging.info(f"Delete post id {id}")
+    index = find_index_post(id)  # int required
+
+    if not index:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                            detail=f"post with id: {id} deleted")
+
+    my_posts.pop(index)
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 # Get all posts
