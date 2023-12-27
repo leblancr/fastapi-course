@@ -1,5 +1,6 @@
 import colorlog
 import logging
+import psycopg
 
 from typing import Optional
 from fastapi import FastAPI, Response, status, HTTPException
@@ -32,8 +33,24 @@ class Post(BaseModel):
     title: str
     content: str
     published: bool = True  # optional
-    rating: Optional[int] = None
 
+
+try:
+    # Connect to an existing database
+    with psycopg.connect("dbname=fastapi-course user=rich password=reddpos") as conn:
+        colorlog.info(f"conn {conn}")
+        # Open a cursor to perform database operations
+        with conn.cursor() as cur:
+
+            # Execute a command: this creates a new table
+            cur.execute("""
+                CREATE TABLE test (
+                    id serial PRIMARY KEY,
+                    num integer,
+                    data text)
+                """)
+except Exception as e:
+    colorlog.error('Error:', e)
 
 my_posts = [{'title': 'title of post 1', 'content': 'content of post 1', 'id': 1},
             {'title': 'fovorite foods', 'content': 'pizza', 'id': 2}]
@@ -97,13 +114,14 @@ async def update_post(id: int, post: Post):  # data form front end is in post
     colorlog.info(f"Update post id {id}")
     index = find_index_post(id)  # int required
 
+    # index can't be zero or this logic doesn't work
     if not index:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                             detail=f"post with id: {id} does not exist")
 
     post_dict = post.model_dump()
     post_dict['id'] = id
-    my_posts[index] = post_dict  # replace with new post
+    my_posts[index - 1] = post_dict  # replace with new post
 
     return {"data": post_dict}
 
