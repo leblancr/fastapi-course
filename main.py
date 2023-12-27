@@ -43,14 +43,15 @@ try:
         with conn.cursor() as cur:
 
             # Execute a command: this creates a new table
-            cur.execute("""
-                CREATE TABLE test (
-                    id serial PRIMARY KEY,
-                    num integer,
-                    data text)
-                """)
+            if 1:
+                cur.execute("""
+                    SELECT * FROM posts
+                    """)
+                posts = cur.fetchall()
+                colorlog.info(posts)
+
 except Exception as e:
-    colorlog.error('Error:', e)
+    colorlog.error(f"Error: {e}")
 
 my_posts = [{'title': 'title of post 1', 'content': 'content of post 1', 'id': 1},
             {'title': 'fovorite foods', 'content': 'pizza', 'id': 2}]
@@ -80,7 +81,7 @@ async def root():
 async def get_post(id: int):  # string gets converted to int
     colorlog.info(f"Getting post id {id}")
     post = find_post(id)  # int required
-
+    post = cur
     if not post:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                             detail=f"post with id: {id} not found")
@@ -105,6 +106,11 @@ async def delete_post(id: int):  # string gets converted to int
 # Get all posts
 @app.get("/posts")
 async def get_posts():
+    cur.execute("""
+                SELECT * FROM posts
+                """)
+    posts = cur.fetchall()
+    colorlog.info(posts)
     return {"data": my_posts}
 
 
