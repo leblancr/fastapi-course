@@ -35,23 +35,29 @@ class Post(BaseModel):
     published: bool = True  # optional
 
 
-try:
-    # Connect to an existing database
-    with psycopg.connect("dbname=fastapi-course user=rich password=reddpos") as conn:
-        colorlog.info(f"conn {conn}")
-        # Open a cursor to perform database operations
-        with conn.cursor() as cur:
+def issue_sql_query(query):
+    db_params = {
+        "host": "192.168.1.192",
+        "port": "5432",
+        "user": "rich",
+        "password": "reddpos",
+        "dbname": "fastapi-course",
+    }
 
-            # Execute a command: this creates a new table
-            if 1:
-                cur.execute("""
-                    SELECT * FROM posts
-                    """)
-                posts = cur.fetchall()
-                colorlog.info(posts)
+    try:
+        # Connect to an existing database
+        with psycopg.connect(**db_params) as conn:
+            colorlog.info(f"conn {conn}")
+            # Open a cursor to perform database operations
+            with conn.cursor() as cur:
+                colorlog.info(f"query {query}")
+                cur.execute(query)
+                data = cur.fetchall()
+                colorlog.info(f"data {data}")
+                return data  # Execute a command
+    except Exception as e:
+        colorlog.error(f"Error: {e}")
 
-except Exception as e:
-    colorlog.error(f"Error: {e}")
 
 my_posts = [{'title': 'title of post 1', 'content': 'content of post 1', 'id': 1},
             {'title': 'fovorite foods', 'content': 'pizza', 'id': 2}]
@@ -106,12 +112,10 @@ async def delete_post(id: int):  # string gets converted to int
 # Get all posts
 @app.get("/posts")
 async def get_posts():
-    cur.execute("""
-                SELECT * FROM posts
-                """)
-    posts = cur.fetchall()
-    colorlog.info(posts)
-    return {"data": my_posts}
+    colorlog.info('Getting all posts')
+    query = """SELECT * FROM posts"""
+    posts = issue_sql_query(query)
+    return {"data": posts}
 
 
 # Update a post
