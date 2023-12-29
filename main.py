@@ -38,7 +38,7 @@ class Post(BaseModel):
 # Function for other functions to send SQL statements to the database. Uses context
 # manager to connect/disconnect every query, don't want to repeat in every function
 # param will be an id or a Post object
-def execute_query(query_str, query_values=None, query_fetch=None):
+def execute_query(query_str, query_values=None, query_fetch='one'):
     db_params = {
         "host": "192.168.1.192",
         "port": "5432",
@@ -60,7 +60,7 @@ def execute_query(query_str, query_values=None, query_fetch=None):
                     data = cur.fetchall()
                 elif query_fetch == 'one':
                     data = cur.fetchone()
-                    if query_str.startswith('INSERT'):
+                    if query_str in ['DELETE', 'INSERT']:
                         conn.commit()
 
                 colorlog.info(f"data {data}")
@@ -94,30 +94,34 @@ async def root():
 
 
 # Get one post, pydantic type check converts string id to int.
-# @app.get("/posts/{id}")  # string id
-# async def get_post(id: int):  # string gets converted to int
-#     colorlog.info(f"Getting post id {id}")
-#     post = find_post(id)  # int required
-#     post = cur
-#     if not post:
-#         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-#                             detail=f"post with id: {id} not found")
-#     return {"post_detail": post}
+@app.get("/posts/{id}")  # string id
+async def get_post(id: int):  # string gets converted to int
+    colorlog.info(f"Getting post id {id}")
+    query_str = """SELECT * FROM posts WHERE id = %s"""
+    query_values = (id,)  # tuple items need comma, even if just one
+
+    post = execute_query(query_str, query_values)
+
+    if not post:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                            detail=f"post with id {id} not found.")
+    return {"post_detail": post}
 
 
 # Delete one post, pydantic type check converts string id to int.
-# @app.delete("/posts/{id}", status_code=status.HTTP_204_NO_CONTENT)  # string id
-# async def delete_post(id: int):  # string gets converted to int
-#     colorlog.info(f"Delete post id {id}")
-#     index = find_index_post(id)  # int required
-#     colorlog.info(f"index {index}")
-#
-#     if not index:
-#         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-#                             detail=f"post with id: {id} does not exist")
-#
-#     my_posts.pop(index - 1)
-#     return Response(status_code=status.HTTP_204_NO_CONTENT)
+@app.delete("/posts/{id}", status_code=status.HTTP_204_NO_CONTENT)  # string id
+async def delete_post(id: int):  # string gets converted to int
+    colorlog.info(f"Delete post id {id}")
+    query_str = """DELETE FROM posts WHERE id = %s RETURNING *"""
+    query_values = (id,)  # tuple items need comma, even if just one
+
+    deleted_post = execute_query(query_str, query_values)
+
+    if not deleted_post:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                            detail=f"post with id: {id} does not exist")
+
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 # Get all posts
@@ -129,22 +133,16 @@ async def get_posts():
     return {"data": posts}
 
 
-# Update a post
-# @app.put("/posts/{id}", status_code=status.HTTP_204_NO_CONTENT)
-# async def update_post(id: int, post: Post):  # data form front end is in post
-#     colorlog.info(f"Update post id {id}")
-#     index = find_index_post(id)  # int required
-#
-#     # index can't be zero or this logic doesn't work
-#     if not index:
-#         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-#                             detail=f"post with id: {id} does not exist")
-#
-#     post_dict = post.model_dump()
-#     post_dict['id'] = id
-#     my_posts[index - 1] = post_dict  # replace with new post
-#
-#     return {"data": post_dict}
+# # Update a post
+@app.put("/posts/{id}", status_code=status.HTTP_204_NO_CONTENT)
+async def update_post(id: int, post: Post):  # data form front end is in post
+    colorlog.info(f"Update post id {id}")
+    query_str = """UPDATE posts SET title = %s, content = %s, published = %s WHERE id = %s RETURNING *"""
+    query_values = (post.title, post.content, post.published, id)
+
+    updated_post = execute_query(query_str, query_values)
+
+    return {"data": updated_post}
 
 
 # Create a new post, (post: Post) - pydantic verifies passed in is the right type, type Post.
@@ -155,10 +153,9 @@ async def create_posts(post: Post):
     colorlog.info(f"post.content: {post.content}")
     colorlog.info(f"post.published: {post.published}")
 
-    query_str = 'INSERT INTO posts (title, content, published) VALUES (%s, %s, %s) RETURNING *'
+    query_str = """INSERT INTO posts (title, content, published) VALUES (%s, %s, %s) RETURNING *"""
     query_values = (post.title, post.content, post.published)
-    query_fetch = 'one'
 
-    new_post = execute_query(query_str, query_values, query_fetch)
+    new_post = execute_query(query_str, query_values)
 
     return {"data": "post created"}
