@@ -159,7 +159,7 @@ async def update_post(id: int, post: Post):  # data form front end is in post
 
 # Create a new post, (post: Post) - pydantic verifies passed in is the right type, type Post.
 @app.post("/posts", status_code=status.HTTP_201_CREATED)
-async def create_posts(post: Post, db: Session = Depends(get_db)):
+async def create_post(post: Post, db: Session = Depends(get_db)):
     colorlog.info(f"post {post}")
     colorlog.info(f"post.title: {post.title}")
     colorlog.info(f"post.content: {post.content}")
