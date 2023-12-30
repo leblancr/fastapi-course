@@ -2,14 +2,13 @@ import colorlog
 import logging
 import psycopg
 
-from typing import Optional
-from fastapi import FastAPI, Response, status, HTTPException
+from fastapi import FastAPI, Response, status, HTTPException, Depends
 from pydantic import BaseModel
-from random import randrange
+from sqlalchemy.orm import Session
+import models
+from database import engine, SessionLocal
 
-colorlog.basicConfig(level=logging.DEBUG,
-                     format='%(asctime)s - %(levelname)s - %(message)s'
-                     )
+colorlog.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 colorlog.debug("debug")
 colorlog.info("info")
 colorlog.warning("warning")
@@ -19,14 +18,29 @@ colorlog.critical("critical")
 # logging.basicConfig(level=logging.DEBUG,
 #                     format='%(asctime)s - %(levelname)s - %(message)s'
 #                     )
-
 # logging.debug('Debug')
 # logging.info('info')
 # logging.warning('warning')
 # logging.error('error')
 # logging.critical('critical')
 
+colorlog.info('Create tables')
+try:
+    models.Base.metadata.create_all(bind=engine)
+    print("Tables created successfully.")
+except Exception as e:
+    print(f"Error creating tables: {e}")
+
 app = FastAPI()
+
+
+# Dependency
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
 
 
 class Post(BaseModel):
@@ -91,6 +105,11 @@ def execute_query(query_str, query_values=None, query_fetch='one'):
 @app.get("/")
 async def root():
     return {"message": "Hello World"}
+
+
+@app.get("/sqlalchemy")
+async def test_posts(db: Session = Depends(get_db)):
+    return {"status": "success"}
 
 
 # Get one post, pydantic type check converts string id to int.
