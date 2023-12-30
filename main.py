@@ -6,7 +6,7 @@ from fastapi import FastAPI, Response, status, HTTPException, Depends
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 import models
-from database import engine, SessionLocal
+from database import engine, get_db
 
 colorlog.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 colorlog.debug("debug")
@@ -32,15 +32,6 @@ except Exception as e:
     print(f"Error creating tables: {e}")
 
 app = FastAPI()
-
-
-# Dependency
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
 
 
 class Post(BaseModel):
