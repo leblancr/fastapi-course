@@ -26,7 +26,7 @@ colorlog.critical("critical")
 
 colorlog.info('Create tables')
 try:
-    models.Base.metadata.create_all(bind=engine)
+    models.Base.metadata.create_all(bind=engine)  # Creates the tables in models.py
     print("Tables created successfully.")
 except Exception as e:
     print(f"Error creating tables: {e}")
@@ -100,7 +100,8 @@ async def root():
 
 @app.get("/sqlalchemy")
 async def test_posts(db: Session = Depends(get_db)):
-    return {"status": "success"}
+    posts = db.query(models.Post).all()
+    return {"data": posts}
 
 
 # Get one post, pydantic type check converts string id to int.
@@ -136,10 +137,11 @@ async def delete_post(id: int):  # string gets converted to int
 
 # Get all posts
 @app.get("/posts")
-async def get_posts():
+async def get_posts(db: Session = Depends(get_db)):
     colorlog.info('Getting all posts')
-    query_str = """SELECT * FROM posts"""
-    posts = execute_query(query_str, query_fetch='all')
+    # query_str = """SELECT * FROM posts"""
+    # posts = execute_query(query_str, query_fetch='all')
+    posts = db.query(models.Post).all()
     return {"data": posts}
 
 
@@ -157,15 +159,20 @@ async def update_post(id: int, post: Post):  # data form front end is in post
 
 # Create a new post, (post: Post) - pydantic verifies passed in is the right type, type Post.
 @app.post("/posts", status_code=status.HTTP_201_CREATED)
-async def create_posts(post: Post):
+async def create_posts(post: Post, db: Session = Depends(get_db)):
     colorlog.info(f"post {post}")
     colorlog.info(f"post.title: {post.title}")
     colorlog.info(f"post.content: {post.content}")
     colorlog.info(f"post.published: {post.published}")
 
-    query_str = """INSERT INTO posts (title, content, published) VALUES (%s, %s, %s) RETURNING *"""
-    query_values = (post.title, post.content, post.published)
+    # query_str = """INSERT INTO posts (title, content, published) VALUES (%s, %s, %s) RETURNING *"""
+    # query_values = (post.title, post.content, post.published)
+    # new_post = execute_query(query_str, query_values)
 
-    new_post = execute_query(query_str, query_values)
+    colorlog.info(f"post.model_dump(): {post.model_dump()}")
+    new_post = models.Post(**post.model_dump())  # ** is dictionary unpacking, used in function calls
+    db.add(new_post)
+    db.commit()
+    db.refresh(new_post)
 
     return {"data": "post created"}
