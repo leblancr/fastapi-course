@@ -138,7 +138,7 @@ async def delete_post(id: int, db: Session = Depends(get_db)):  # string gets co
 
     query.delete(synchronize_session=False)
     db.commit()
-    
+
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
@@ -156,12 +156,20 @@ async def get_posts(db: Session = Depends(get_db)):
 @app.put("/posts/{id}", status_code=status.HTTP_204_NO_CONTENT)
 async def update_post(id: int, post: Post, db: Session = Depends(get_db)):  # data form front end is in post
     colorlog.info(f"Update post id {id}")
-    query_str = """UPDATE posts SET title = %s, content = %s, published = %s WHERE id = %s RETURNING *"""
-    query_values = (post.title, post.content, post.published, id)
+    # query_str = """UPDATE posts SET title = %s, content = %s, published = %s WHERE id = %s RETURNING *"""
+    # query_values = (post.title, post.content, post.published, id)
+    # updated_post = execute_query(query_str, query_values)
 
-    updated_post = execute_query(query_str, query_values)
+    query = db.query(models.Post).filter(models.Post.id == id)
 
-    return {"data": updated_post}
+    if not query.first():
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                            detail=f"post with id: {id} does not exist")
+
+    query.update(post.model_dump())
+    db.commit()
+
+    return {"data": query.first()}
 
 
 # Create a new post, (post: Post) - pydantic verifies passed in is the right type, type Post.
