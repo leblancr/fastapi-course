@@ -126,15 +126,19 @@ async def get_post(id: int, db: Session = Depends(get_db)):  # string gets conve
 @app.delete("/posts/{id}", status_code=status.HTTP_204_NO_CONTENT)  # string id
 async def delete_post(id: int, db: Session = Depends(get_db)):  # string gets converted to int
     colorlog.info(f"Delete post id {id}")
-    query_str = """DELETE FROM posts WHERE id = %s RETURNING *"""
-    query_values = (id,)  # tuple items need comma, even if just one
+    # query_str = """DELETE FROM posts WHERE id = %s RETURNING *"""
+    # query_values = (id,)  # tuple items need comma, even if just one
+    # deleted_post = execute_query(query_str, query_values)
 
-    deleted_post = execute_query(query_str, query_values)
+    query = db.query(models.Post).filter(models.Post.id == id)  # models.Post has __tablename__
 
-    if not deleted_post:
+    if not query.first():
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                             detail=f"post with id: {id} does not exist")
 
+    query.delete(synchronize_session=False)
+    db.commit()
+    
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
