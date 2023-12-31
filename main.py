@@ -104,14 +104,17 @@ async def test_posts(db: Session = Depends(get_db)):
     return {"data": posts}
 
 
-# Get one post, pydantic type check converts string id to int.
+# Get one post by id, pydantic type check converts string id to int.
 @app.get("/posts/{id}")  # string id
-async def get_post(id: int):  # string gets converted to int
+async def get_post(id: int, db: Session = Depends(get_db)):  # string gets converted to int here
     colorlog.info(f"Getting post id {id}")
-    query_str = """SELECT * FROM posts WHERE id = %s"""
-    query_values = (id,)  # tuple items need comma, even if just one
+    # query_str = """SELECT * FROM posts WHERE id = %s"""
+    # query_values = (id,)  # tuple items need comma, even if just one
+    # post = execute_query(query_str, query_values)
 
-    post = execute_query(query_str, query_values)
+    post =db.query(models.Post).filter(models.Post.id == id).first()  # models.Post has __tablename__
+
+    colorlog.info(f"post {post}")
 
     if not post:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
@@ -121,7 +124,7 @@ async def get_post(id: int):  # string gets converted to int
 
 # Delete one post, pydantic type check converts string id to int.
 @app.delete("/posts/{id}", status_code=status.HTTP_204_NO_CONTENT)  # string id
-async def delete_post(id: int):  # string gets converted to int
+async def delete_post(id: int, db: Session = Depends(get_db)):  # string gets converted to int
     colorlog.info(f"Delete post id {id}")
     query_str = """DELETE FROM posts WHERE id = %s RETURNING *"""
     query_values = (id,)  # tuple items need comma, even if just one
@@ -147,7 +150,7 @@ async def get_posts(db: Session = Depends(get_db)):
 
 # # Update a post
 @app.put("/posts/{id}", status_code=status.HTTP_204_NO_CONTENT)
-async def update_post(id: int, post: Post):  # data form front end is in post
+async def update_post(id: int, post: Post, db: Session = Depends(get_db)):  # data form front end is in post
     colorlog.info(f"Update post id {id}")
     query_str = """UPDATE posts SET title = %s, content = %s, published = %s WHERE id = %s RETURNING *"""
     query_values = (post.title, post.content, post.published, id)
