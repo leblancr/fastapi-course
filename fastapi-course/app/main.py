@@ -1,4 +1,5 @@
 import logging
+from typing import List
 
 import colorlog
 import psycopg
@@ -41,7 +42,7 @@ async def root():
 
 
 # Get one post by id, pydantic type check converts string id to int.
-@app.get("/posts/{id}")  # string id
+@app.get("/posts/{id}", response_model=schemas.Post)  # string id
 async def get_post(id: int, db: Session = Depends(get_db)):  # string gets converted to int here
     colorlog.info(f"Getting post id {id}")
     # query_str = """SELECT * FROM posts WHERE id = %s"""
@@ -55,7 +56,7 @@ async def get_post(id: int, db: Session = Depends(get_db)):  # string gets conve
     if not post:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                             detail=f"post with id {id} not found.")
-    return {"post_detail": post}
+    return post
 
 
 # Delete one post, pydantic type check converts string id to int.
@@ -79,24 +80,25 @@ async def delete_post(id: int, db: Session = Depends(get_db)):  # string gets co
 
 
 # Get all posts
-@app.get("/posts")
+@app.get("/posts", response_model=List[schemas.Post])
 async def get_posts(db: Session = Depends(get_db)):
     colorlog.info('Getting all posts')
     # query_str = """SELECT * FROM posts"""
     # posts = execute_query(query_str, query_fetch='all')
-    posts = db.query(models.Post).all()
-    return {"data": posts}
+    posts = db.query(models.Post).all()  # models.Post is __tablename__
+
+    return posts
 
 
 # # Update a post
-@app.put("/posts/{id}", status_code=status.HTTP_204_NO_CONTENT)
+@app.put("/posts/{id}", response_model=schemas.Post)
 async def update_post(id: int, post: schemas.PostCreate, db: Session = Depends(get_db)):  # data form front end is in post
     colorlog.info(f"Update post id {id}")
     # query_str = """UPDATE posts SET title = %s, content = %s, published = %s WHERE id = %s RETURNING *"""
     # query_values = (post.title, post.content, post.published, id)
     # updated_post = execute_query(query_str, query_values)
 
-    query = db.query(models.Post).filter(models.Post.id == id)
+    query = db.query(models.Post).filter(models.Post.id == id)  # models.Post is __tablename__
 
     if not query.first():
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
@@ -109,7 +111,7 @@ async def update_post(id: int, post: schemas.PostCreate, db: Session = Depends(g
 
 
 # Create a new post, (post: Post) - pydantic verifies passed in is the right type, type Post.
-@app.post("/posts", status_code=status.HTTP_201_CREATED)
+@app.post("/posts", status_code=status.HTTP_201_CREATED, response_model=schemas.Post)
 async def create_post(post: schemas.PostCreate, db: Session = Depends(get_db)):
     colorlog.info(f"post {post}")
     colorlog.info(f"post.title: {post.title}")
@@ -126,4 +128,4 @@ async def create_post(post: schemas.PostCreate, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(new_post)
 
-    return {"data": "post created"}
+    return new_post
