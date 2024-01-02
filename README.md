@@ -15,7 +15,7 @@ poetry --version                (main)fastapi-course
 Poetry (version 1.7.1)
 
 to start: 
-cd ~/projects/python/fastapi-course
+cd ~/projects/python/fastapi-course/fastapi-course/app - have to be in directory with models.
 poetry shell
 To start this serves our app on http://127.0.0.1:8000 or localhost:
 (fastapi-course-py3.11) rich@b450m-a /home/rich/projects/python/fastapi-course/fastapi-course/app $ uvicorn main:app --reload                                                                                       

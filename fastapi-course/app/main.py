@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 
 import models
 import schemas
+import utils
 from database import engine, get_db
 
 colorlog.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -94,10 +95,6 @@ async def get_posts(db: Session = Depends(get_db)):
 @app.put("/posts/{id}", response_model=schemas.Post)
 async def update_post(id: int, post: schemas.PostCreate, db: Session = Depends(get_db)):  # data form front end is in post
     colorlog.info(f"Update post id {id}")
-    # query_str = """UPDATE posts SET title = %s, content = %s, published = %s WHERE id = %s RETURNING *"""
-    # query_values = (post.title, post.content, post.published, id)
-    # updated_post = execute_query(query_str, query_values)
-
     query = db.query(models.Post).filter(models.Post.id == id)  # models.Post is __tablename__
 
     if not query.first():
@@ -110,18 +107,9 @@ async def update_post(id: int, post: schemas.PostCreate, db: Session = Depends(g
     return {"data": query.first()}
 
 
-# Create a new post, (post: Post) - pydantic verifies passed in is the right type, type Post.
+# Create a new post, (post: schemas.PostCreate) - pydantic verifies passed in is this type
 @app.post("/posts", status_code=status.HTTP_201_CREATED, response_model=schemas.Post)
 async def create_post(post: schemas.PostCreate, db: Session = Depends(get_db)):
-    colorlog.info(f"post {post}")
-    colorlog.info(f"post.title: {post.title}")
-    colorlog.info(f"post.content: {post.content}")
-    colorlog.info(f"post.published: {post.published}")
-
-    # query_str = """INSERT INTO posts (title, content, published) VALUES (%s, %s, %s) RETURNING *"""
-    # query_values = (post.title, post.content, post.published)
-    # new_post = execute_query(query_str, query_values)
-
     colorlog.info(f"post.model_dump(): {post.model_dump()}")
     new_post = models.Post(**post.model_dump())  # ** is dictionary unpacking, used in function calls
     db.add(new_post)
@@ -129,3 +117,19 @@ async def create_post(post: schemas.PostCreate, db: Session = Depends(get_db)):
     db.refresh(new_post)
 
     return new_post
+
+
+# Create a new user, (user: schemas.UserCreate) - pydantic verifies passed in is this type
+@app.post("/users", status_code=status.HTTP_201_CREATED, response_model=schemas.UserOut)
+async def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
+    colorlog.info(f"user.model_dump(): {user.model_dump()}")
+
+    hashed_password = utils.hash(user.password)
+    user.password = hashed_password
+
+    new_user = models.User(**user.model_dump())  # ** is dictionary unpacking, used in function calls
+    db.add(new_user)
+    db.commit()
+    db.refresh(new_user)
+
+    return new_user

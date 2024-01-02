@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from pydantic import BaseModel
+from pydantic import BaseModel, EmailStr
 
 
 # Pydantic models for validation of data received from requests and sent back in response
@@ -22,4 +22,19 @@ class Post(PostBase):
 
     class Config:
         from_attributes = True  # converts sqlalchemy model returned to pydantic model (dictionary)
+
+
+class UserCreate(BaseModel):
+    email: EmailStr
+    password: str
+
+
+class UserOut(BaseModel):
+    id: int
+    email: EmailStr
+    created_at: datetime
+
+    class Config:
+        from_attributes = True  # converts sqlalchemy model returned to pydantic model (dictionary)
+
 
