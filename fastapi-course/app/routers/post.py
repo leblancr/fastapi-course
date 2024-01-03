@@ -6,14 +6,17 @@ from typing import List
 from fastapi import Response, status, HTTPException, Depends, APIRouter
 from sqlalchemy.orm import Session
 
-from app import schemas, models
+from .. import schemas, models
 from .. database import get_db
 
-router = APIRouter()
+router = APIRouter(
+    prefix='/posts',  # url path starts with this
+    tags=['posts']
+)
 
 
 # Get one post by id, pydantic type check converts string id to int.
-@router.get("/posts/{id}", response_model=schemas.Post)  # string id
+@router.get("/{id}", response_model=schemas.Post)  # string id
 async def get_post(id: int, db: Session = Depends(get_db)):  # string gets converted to int here
     colorlog.info(f"Getting post id {id}")
     post =db.query(models.Post).filter(models.Post.id == id).first()  # models.Post has __tablename__
@@ -27,7 +30,7 @@ async def get_post(id: int, db: Session = Depends(get_db)):  # string gets conve
 
 
 # Delete one post, pydantic type check converts string id to int.
-@router.delete("/posts/{id}", status_code=status.HTTP_204_NO_CONTENT)  # string id
+@router.delete("/{id}", status_code=status.HTTP_204_NO_CONTENT)  # string id
 async def delete_post(id: int, db: Session = Depends(get_db)):  # string gets converted to int
     colorlog.info(f"Delete post id {id}")
     query = db.query(models.Post).filter(models.Post.id == id)  # models.Post has __tablename__
@@ -43,7 +46,7 @@ async def delete_post(id: int, db: Session = Depends(get_db)):  # string gets co
 
 
 # Get all posts
-@router.get("/posts", response_model=List[schemas.Post])
+@router.get("", response_model=List[schemas.Post])
 async def get_posts(db: Session = Depends(get_db)):
     colorlog.info('Getting all posts')
     posts = db.query(models.Post).all()  # models.Post is __tablename__
@@ -52,7 +55,7 @@ async def get_posts(db: Session = Depends(get_db)):
 
 
 # Update a post
-@router.put("/posts/{id}", response_model=schemas.Post)
+@router.put("/{id}", response_model=schemas.Post)
 async def update_post(id: int, post: schemas.PostCreate, db: Session = Depends(get_db)):  # data form front end is in post
     colorlog.info(f"Update post id {id}")
     query = db.query(models.Post).filter(models.Post.id == id)  # models.Post is __tablename__
@@ -68,7 +71,7 @@ async def update_post(id: int, post: schemas.PostCreate, db: Session = Depends(g
 
 
 # Create a new post, (post: schemas.PostCreate) - pydantic verifies passed in is this type
-@router.post("/posts", status_code=status.HTTP_201_CREATED, response_model=schemas.Post)
+@router.post("", status_code=status.HTTP_201_CREATED, response_model=schemas.Post)
 async def create_post(post: schemas.PostCreate, db: Session = Depends(get_db)):
     colorlog.info(f"post.model_dump(): {post.model_dump()}")
     new_post = models.Post(**post.model_dump())  # ** is dictionary unpacking, used in function calls
