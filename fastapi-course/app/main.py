@@ -5,7 +5,7 @@ from fastapi import FastAPI
 
 from .database import engine
 from .models import Base
-from .routers import post, user
+from .routers import post, user, auth
 
 colorlog.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 colorlog.debug("debug")
@@ -34,6 +34,7 @@ app = FastAPI()
 
 app.include_router(post.router)
 app.include_router(user.router)
+app.include_router(auth.router)
 
 
 @app.get("/")

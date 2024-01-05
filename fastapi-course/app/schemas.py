@@ -38,3 +38,7 @@ class UserOut(BaseModel):
         from_attributes = True  # converts sqlalchemy model returned to pydantic model (dictionary)
 
 
+class UserLogin(BaseModel):
+    email: EmailStr
+    password: str
+

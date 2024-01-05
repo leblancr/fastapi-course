@@ -54,3 +54,8 @@ Package operations: 1 install, 0 updates, 0 removals
   • Installing uvicorn (0.24.0.post1)
 
 Installing the current project: fastapi-course (0.1.0)
+
+raise TypeError('{!r} is not a callable object'.format(obj))
+TypeError: <generator object get_db at 0x1f007a3901e0> is not a callable object
+
+Depends(database.get_db()) should be: Depends(database.get_db)), remove parenthesis
